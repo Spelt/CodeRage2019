@@ -22,7 +22,7 @@ uses
   FMX.StdCtrls,
   FMX.Layouts,
   FMX.Ani,
-  BlurBehindControl;
+  BlurBehindControl, FMX.Colors;
 
 type
   TFormMain = class(TForm)
@@ -45,9 +45,18 @@ type
     TrackBarBlurAmount: TTrackBar;
     LabelBlurAmount: TLabel;
     ImageCodeRage: TImage;
+    Layout1: TLayout;
+    ComboColorBoxBlend: TComboColorBox;
+    Label3: TLabel;
+    SwitchBlend: TSwitch;
+    cbHasRoundCorners: TCheckBox;
     procedure SwitchAnimateSwitch(Sender: TObject);
     procedure TabControlResize(Sender: TObject);
     procedure TrackBarBlurAmountChange(Sender: TObject);
+    procedure SwitchBlendSwitch(Sender: TObject);
+    procedure ComboColorBoxBlendChange(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure cbHasRoundCornersChange(Sender: TObject);
   private
     { Private declarations }
   public
@@ -60,6 +69,12 @@ var
 implementation
 
 {$R *.fmx}
+
+procedure TFormMain.FormCreate(Sender: TObject);
+begin
+  BlurBehindControl.BlendColor := ComboColorBoxBlend.Color;
+  BlurBehindControl.Corners := AllCorners;
+end;
 
 procedure TFormMain.SwitchAnimateSwitch(Sender: TObject);
 begin
@@ -85,6 +100,24 @@ procedure TFormMain.TrackBarBlurAmountChange(Sender: TObject);
 begin
   LabelBlurAmount.Text := Format('%.1f', [TrackBarBlurAmount.Value]);
   BlurBehindControl.BlurAmount := TrackBarBlurAmount.Value;
+end;
+
+procedure TFormMain.SwitchBlendSwitch(Sender: TObject);
+begin
+	BlurBehindControl.BlendColorEnabled := SwitchBlend.IsChecked;
+end;
+
+procedure TFormMain.cbHasRoundCornersChange(Sender: TObject);
+begin
+	if cbHasRoundCorners.IsChecked then
+		BlurBehindControl.Corners := AllCorners
+  else
+  	BlurBehindControl.Corners := [];
+end;
+
+procedure TFormMain.ComboColorBoxBlendChange(Sender: TObject);
+begin
+	BlurBehindControl.BlendColor := ComboColorBoxBlend.Color;
 end;
 
 end.
