@@ -22,9 +22,12 @@ uses
   FMX.StdCtrls,
   FMX.Layouts,
   FMX.Ani,
-  BlurBehindControl, FMX.Colors;
+  FMX.Filter.Effects,
+  FMX.Colors, BlurBehindControl;
 
 type
+
+
   TFormMain = class(TForm)
     TabControl: TTabControl;
     TabItem1: TTabItem;
@@ -58,15 +61,14 @@ type
     procedure FormCreate(Sender: TObject);
     procedure cbHasRoundCornersChange(Sender: TObject);
   private
-    { Private declarations }
   public
-    { Public declarations }
   end;
 
 var
   FormMain: TFormMain;
 
 implementation
+uses diagnostics;
 
 {$R *.fmx}
 
@@ -119,5 +121,7 @@ procedure TFormMain.ComboColorBoxBlendChange(Sender: TObject);
 begin
 	BlurBehindControl.BlendColor := ComboColorBoxBlend.Color;
 end;
+
+
 
 end.
