@@ -23,6 +23,7 @@ uses
   FMX.Layouts,
   FMX.Ani,
   FMX.Filter.Effects,
+   FMX.Platform,
   FMX.Colors, BlurBehindControl;
 
 type
@@ -53,6 +54,9 @@ type
     Label3: TLabel;
     SwitchBlend: TSwitch;
     cbHasRoundCorners: TCheckBox;
+    btnEffect: TButton;
+    faEffect: TFloatAnimation;
+    Timer1: TTimer;
     procedure SwitchAnimateSwitch(Sender: TObject);
     procedure TabControlResize(Sender: TObject);
     procedure TrackBarBlurAmountChange(Sender: TObject);
@@ -60,23 +64,55 @@ type
     procedure ComboColorBoxBlendChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbHasRoundCornersChange(Sender: TObject);
+    procedure faEffectProcess(Sender: TObject);
+    procedure btnEffectClick(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
   private
+  	FRenderTime: Single;
+    FFrameCount: Integer;
+    FUpdateRects: array of TRectF;
+    FTimerService: IFMXTimerService;
+    FFps: Single;
+  protected
+    procedure PaintRects(const UpdateRects: array of TRectF); override;
   public
   end;
 
 var
   FormMain: TFormMain;
 
-implementation
+Implementation
 uses diagnostics;
 
 {$R *.fmx}
 
+procedure TFormMain.faEffectProcess(Sender: TObject);
+begin
+  BlurBehindControl.Scale.Y := BlurBehindControl.Scale.X;
+end;
+
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
+	TPlatformServices.Current.SupportsPlatformService(IFMXTimerService, FTimerService);
   BlurBehindControl.BlendColor := ComboColorBoxBlend.Color;
   BlurBehindControl.Corners := AllCorners;
 end;
+
+procedure TFormMain.PaintRects(const UpdateRects: array of TRectF);
+var
+  C: Double;
+begin
+  if Length(UpdateRects) > 0 then
+  begin
+    SetLength(FUpdateRects, Length(UpdateRects));
+    Move(UpdateRects[0], FUpdateRects[0], SizeOf(TRectF) * Length(UpdateRects));
+    C := FTimerService.GetTick;
+    inherited;
+    FRenderTime := FRenderTime + (FTimerService.GetTick - C);
+    FFrameCount := FFrameCount + 1;
+  end;
+end;
+
 
 procedure TFormMain.SwitchAnimateSwitch(Sender: TObject);
 begin
@@ -98,6 +134,17 @@ begin
   FloatAnimationPosY.StopValue := TabControl.Height - BlurBehindControl.Height;
 end;
 
+procedure TFormMain.Timer1Timer(Sender: TObject);
+begin
+    if FFrameCount > 0 then
+  begin
+    FFps := 1 / (FRenderTime / FFrameCount);
+    Caption := Round(FFps).ToString + ' FPS';
+    FFrameCount := 0;
+    FRenderTime := 0;
+  end;
+end;
+
 procedure TFormMain.TrackBarBlurAmountChange(Sender: TObject);
 begin
   LabelBlurAmount.Text := Format('%.1f', [TrackBarBlurAmount.Value]);
@@ -107,6 +154,11 @@ end;
 procedure TFormMain.SwitchBlendSwitch(Sender: TObject);
 begin
 	BlurBehindControl.BlendColorEnabled := SwitchBlend.IsChecked;
+end;
+
+procedure TFormMain.btnEffectClick(Sender: TObject);
+begin
+	faEffect.Start;
 end;
 
 procedure TFormMain.cbHasRoundCornersChange(Sender: TObject);

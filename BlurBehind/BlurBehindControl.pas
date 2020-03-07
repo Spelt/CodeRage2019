@@ -109,7 +109,7 @@ constructor TBlurBehindControl.Create(AOwner: TComponent);
 begin
 	inherited;
 	HitTest := False;
-	FBitmapBlurred := TBitmap.Create;
+	// FBitmapBlurred := TBitmap.Create;
 	FBitmapControlBehind := TBitmap.Create;
 
 	FGaussianBlurEffect := TGaussianBlurEffect.Create(Self);
@@ -130,7 +130,7 @@ end;
 
 destructor TBlurBehindControl.Destroy;
 begin
-	FBitmapBlurred.Free;
+	// FBitmapBlurred.Free;
 	FBitmapBlend.Free;
 	FBitmapControlBehind.Free;
 	inherited;
@@ -174,24 +174,30 @@ end;
 
 procedure TBlurBehindControl.Paint;
 begin
+
 	{ Copy the visual of the parent control to FBitmapOfControlBehind. }
 	UpdateBitmapOfControlBehind;
 
-
-  //FBitmapBlurred.Assign(FBitmapControlBehind);
- // FBitmapBlurred := FBitmapControlBehind.CreateThumbnail(round(FBitmapControlBehind.Width / 2 ), round(FBitmapControlBehind.Height / 2));
+	{ Resize the bitmap to a smaller size before image effect processing to reduce processing time. }
+	FBitmapBlurred := FBitmapControlBehind.CreateThumbnail(round(FBitmapControlBehind.Width / 2), round(FBitmapControlBehind.Height / 2));
 
 	UpdateBitmapBlend;
 
 	UpdateBitmapBlurred;
 
-  //FBitmapBlurred := FBitmapBlurred.CreateThumbnail(FBitmapControlBehind.Width, FBitmapControlBehind.Height);
+	{ Resize the bitmap to the original size for painting. }
+	var bitmapforPainting := FBitmapBlurred.CreateThumbnail(FBitmapControlBehind.Width, FBitmapControlBehind.Height);
 
+	try
 
+		Fill.Bitmap.Bitmap := bitmapforPainting;
+		inherited Paint;
 
-	Fill.Bitmap.Bitmap := FBitmapBlurred;
+	finally
+		bitmapforPainting.Free;
+		FBitmapBlurred.Free;
+	end;
 
-	inherited Paint;
 end;
 
 procedure TBlurBehindControl.UpdateBitmapBlend();
@@ -265,11 +271,9 @@ begin
 
 	TargetWidth := round(Width);
 	TargetHeight := round(Height);
-	//FBitmapControlBehind.SetSize(TargetWidth, TargetHeight);
-  FBitmapBlurred.SetSize(TargetWidth, TargetHeight);
+	FBitmapControlBehind.SetSize(TargetWidth, TargetHeight);
 
-	//PaintPartToBitmap(ControlBehind, BoundsRect.round, TRect.Create(0, 0, TargetWidth, TargetHeight), FBitmapControlBehind);
-  PaintPartToBitmap(ControlBehind, BoundsRect.round, TRect.Create(0, 0, TargetWidth, TargetHeight), FBitmapBlurred);
+	PaintPartToBitmap(ControlBehind, BoundsRect.round, TRect.Create(0, 0, TargetWidth, TargetHeight), FBitmapControlBehind);
 
 end;
 
