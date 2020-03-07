@@ -8,7 +8,7 @@ uses
 	FMX.Controls,
 	FMX.Graphics,
 	FMX.Filter.Effects,
-  FMX.Objects,
+	FMX.Objects,
 	System.UITypes;
 
 type
@@ -16,11 +16,10 @@ type
 	TBlurBehindControl = class(TRectangle)
 {$REGION 'Internal Declarations'}
 	private
-		FBitmapBlurred: TBitmap;
+		FBitmapControlBehind, FBitmapBlend, FBitmapBlurred: TBitmap;
 
 		FGaussianBlurEffect: TGaussianBlurEffect;
 		FBlurAmount: Single;
-		FBitmapBlend: TBitmap;
 		FBlendEffect: TNormalBlendEffect;
 		FBlendColor: TAlphaColor;
 		FBlendColorEnabled: Boolean;
@@ -111,6 +110,8 @@ begin
 	inherited;
 	HitTest := False;
 	FBitmapBlurred := TBitmap.Create;
+	FBitmapControlBehind := TBitmap.Create;
+
 	FGaussianBlurEffect := TGaussianBlurEffect.Create(Self);
 	FBlurAmount := 1.5;
 
@@ -118,34 +119,21 @@ begin
 	FBlendEffect := TNormalBlendEffect.Create(Self);
 	FBitmapBlend := TBitmap.Create;
 
-  Fill.Kind := TBrushKind.Bitmap;
+	Fill.Kind := TBrushKind.Bitmap;
 	Fill.Bitmap.WrapMode := TWrapmode.TileOriginal;
 
-  Stroke.Kind := TBrushKind.None;
-  XRadius := 15;
-  YRadius := 15;
+	Stroke.Kind := TBrushKind.None;
+	XRadius := 15;
+	YRadius := 15;
 
-  end;
+end;
 
 destructor TBlurBehindControl.Destroy;
 begin
 	FBitmapBlurred.Free;
 	FBitmapBlend.Free;
+	FBitmapControlBehind.Free;
 	inherited;
-end;
-
-procedure TBlurBehindControl.Paint;
-begin
-	{ Copy the visual of the parent control to FBitmapOfControlBehind. }
-	UpdateBitmapOfControlBehind;
-
-  UpdateBitmapBlend;
-
- 	UpdateBitmapBlurred;
-
-  Fill.Bitmap.Bitmap := FBitmapBlurred;
-
-  inherited paint;
 end;
 
 procedure TBlurBehindControl.ParentChanged;
@@ -184,11 +172,33 @@ begin
 	end;
 end;
 
+procedure TBlurBehindControl.Paint;
+begin
+	{ Copy the visual of the parent control to FBitmapOfControlBehind. }
+	UpdateBitmapOfControlBehind;
+
+
+  //FBitmapBlurred.Assign(FBitmapControlBehind);
+ // FBitmapBlurred := FBitmapControlBehind.CreateThumbnail(round(FBitmapControlBehind.Width / 2 ), round(FBitmapControlBehind.Height / 2));
+
+	UpdateBitmapBlend;
+
+	UpdateBitmapBlurred;
+
+  //FBitmapBlurred := FBitmapBlurred.CreateThumbnail(FBitmapControlBehind.Width, FBitmapControlBehind.Height);
+
+
+
+	Fill.Bitmap.Bitmap := FBitmapBlurred;
+
+	inherited Paint;
+end;
+
 procedure TBlurBehindControl.UpdateBitmapBlend();
 begin
 
 	if (not FBlendColorEnabled) then
-		exit;
+		Exit;
 
 	FBitmapBlend.SetSize(FBitmapBlurred.Size);
 	FBitmapBlend.Clear(FBlendColor);
@@ -225,28 +235,27 @@ begin
 	FGaussianBlurEffect.ProcessEffect(nil, FBitmapBlurred, 0);
 end;
 
-
 procedure TBlurBehindControl.UpdateBitmapOfControlBehind;
 var
 	ControlBehind: TControl;
 	TargetWidth, TargetHeight: Integer;
 
-  procedure PaintPartToBitmap(Control: TControl; SourceRect, TargetRect: TRect; Bitmap: TBitmap);
-  var ClipRects: TClipRects;
-      X, Y: Single;
-  begin
-    ClipRects := [TRectF.Create(TargetRect)];
-    if (Bitmap.Canvas.BeginScene(@ClipRects)) then
-      try
-      		FDisablePaint := True;
-        X := TargetRect.Left - SourceRect.Left;
-        Y := TargetRect.Top - SourceRect.Top;
-        Control.PaintTo(Bitmap.Canvas, RectF(X, Y, X + Control.Width, Y + Control.Height));
-      finally
-      		FDisablePaint := false;
-        Bitmap.Canvas.EndScene;
-      end;
-  end;
+	procedure PaintPartToBitmap(const Control: TControl; const SourceRect, TargetRect: TRect; const Bitmap: TBitmap);
+	var ClipRects: TClipRects;
+		X, Y: Single;
+	begin
+		ClipRects := [TRectF.Create(TargetRect)];
+		if (Bitmap.Canvas.BeginScene(@ClipRects)) then
+			try
+				FDisablePaint := True;
+				X := TargetRect.Left - SourceRect.Left;
+				Y := TargetRect.Top - SourceRect.Top;
+				Control.PaintTo(Bitmap.Canvas, RectF(X, Y, X + Control.Width, Y + Control.Height));
+			finally
+				FDisablePaint := False;
+				Bitmap.Canvas.EndScene;
+			end;
+	end;
 
 begin
 
@@ -254,11 +263,13 @@ begin
 	Assert(Parent is TControl);
 	ControlBehind := TControl(Parent);
 
-  TargetWidth := Round(Width);
-	TargetHeight := Round(Height);
-	FBitmapBlurred.SetSize(TargetWidth, TargetHeight);
+	TargetWidth := round(Width);
+	TargetHeight := round(Height);
+	//FBitmapControlBehind.SetSize(TargetWidth, TargetHeight);
+  FBitmapBlurred.SetSize(TargetWidth, TargetHeight);
 
-  PaintPartToBitmap(ControlBehind, BoundsRect.Round, TRect.Create(0,0,TargetWidth, TargetHeight), FBitmapBlurred );
+	//PaintPartToBitmap(ControlBehind, BoundsRect.round, TRect.Create(0, 0, TargetWidth, TargetHeight), FBitmapControlBehind);
+  PaintPartToBitmap(ControlBehind, BoundsRect.round, TRect.Create(0, 0, TargetWidth, TargetHeight), FBitmapBlurred);
 
 end;
 
